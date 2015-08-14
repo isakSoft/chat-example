@@ -11,6 +11,7 @@
       #messages { list-style-type: none; margin: 0; padding: 0; }
       #messages li { padding: 5px 10px; }
       #messages li:nth-child(odd) { background: #eee; }
+      .nickListDiv {background: #fff; width: 10%; length:100%; position: fixed; right:0;}
     </style>
   </head>
   <body>
@@ -18,34 +19,85 @@
         <input type="text" name="txtNick" id="txtNick" value="Enter nickname" />
         <button>Enter</button>
     </form>
+    <div class="nickListDiv">
+        <ul id="nickList">
+        </ul>
+    </div>
     <ul id="messages"></ul>
+    <form action="" id="directMsgForm">
+      <input id="m" autocomplete="off" /><button>Send Direct</button>
+    </form>
     <form action="" id="msgForm">
-      <input id="m" autocomplete="off" /><button>Send</button>
+      <input id="m" autocomplete="off" /><button>Send All</button>
     </form>
     <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       var socket = io();
-      var nick;
+      //This part takes nick and hides nick form
+      var myNick;
+      var toNick;
+      var msg={
+        _nick: '',
+        _verb: '',
+        _msg: ''
+      };
+
       $('#msgForm').hide();
+      $('#directMsgForm').hide();
+
       $('#txtNick').focus(function(){
         $('#txtNick').val(' ');
       });
 
       $('#loginForm').submit(function(){
-          nick=$('#txtNick').val();
+          myNick=$('#txtNick').val();
           $('#loginForm').hide();
           $('#msgForm').show();
+          socket.emit('nickListItem', myNick);
           return false;
       });
-      $('#msgForm').submit(function(){
-        var msg = nick + ' ' + 'wrote:' + ' ' + $('#m').val()
-        socket.emit('chat message', msg );
+
+      socket.on('nickListItem', function(myNick){
+        $('#nickList').append($('<li>').append($('<input>',{type:'button', value:myNick, onclick:'nickClick()' })));//.val(myNick)));
+      });
+
+      var trimNick=$.trim(String(myNick));
+      var myNickId = "#" + trimNick;
+      function nickClick(){
+        toNick=$(myNickId).val();
+        $('#msgForm').hide();
+        $('#directMsgForm').show();
+      };
+
+      // Send - recieves direct msg
+      $('#directMsgForm').submit(function(){
+        msg = {
+          _nick: toNick,
+          _verb: 'in direct says',
+          _msg: $('#m').val()
+        };
+        socket.emit('direct message', msg );
         $('#m').val('');
         return false;
       });
-      socket.on('chat message', function(msg){
-        $('#messages').append($('<li>').text(msg));
+      socket.on('direct message with' + ' ' + msg._nick, function(msg){
+        $('#messages').append($('<li>').text(msg._msg));
+      });
+
+      // Send - recieves channel msg
+      $('#msgForm').submit(function(){
+        msg = {
+          _nick: myNick,
+          _verb: 'in channel says',
+          _msg: $('#m').val()
+        };
+        socket.emit('channel message', msg );
+        $('#m').val('');
+        return false;
+      });
+      socket.on('channel message', function(msg){
+        $('#messages').append($('<li>').text(msg._msg));
       });
     </script>
   </body>

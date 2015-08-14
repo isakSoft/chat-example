@@ -7,11 +7,17 @@ app.get('/', function(req, res){
 });
 
 io.on('connection', function(socket){
-  socket.on('chat message', function(msg){
-    io.emit('chat message', msg);
+  socket.on('nickListItem', function(myNick){
+    io.emit('nickListItem', myNick);
+  })
+  socket.on('direct message', function(msg){
+    io.emit('direct message with' + ' ' + msg._nick, msg);
+  });
+  socket.on('channel message', function(msg){
+    io.emit('channel message', msg);
   });
 });
 
-http.listen(3000, function(){
-  console.log('listening on *:3000');
+http.listen(3003, function(){
+  console.log('listening on *:3003');
 });
